@@ -97,7 +97,7 @@ CREATE TABLE ChiTietDonNhap (
 	MaNCC INT NOT NULL,
     SoLuong INT,
     ThanhTien DECIMAL(18,2),
-    PRIMARY KEY (MaDN, MaSach),
+    PRIMARY KEY (MaDN, MaSach, MaNCC),
     FOREIGN KEY (MaDN) REFERENCES DonNhap(MaDN),
     FOREIGN KEY (MaSach) REFERENCES Sach(MaSach),
 	FOREIGN KEY (MaNCC) REFERENCES NhaCungCap(MaNCC)
