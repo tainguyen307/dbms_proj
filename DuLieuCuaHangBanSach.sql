@@ -173,6 +173,34 @@ CREATE TABLE KhuyenMai (
 );
 
 ------------------------------------------------------
+-- CONSTRAINTS & INDEXES
+------------------------------------------------------
+
+-- Thêm ràng buộc
+ALTER TABLE HoaDon ADD CONSTRAINT CK_HoaDon_TongTien CHECK (TongTien >= 0);
+ALTER TABLE Sach ADD CONSTRAINT CK_Sach_DonGia CHECK (DonGia >= 0);
+ALTER TABLE Sach ADD CONSTRAINT CK_Sach_SLTonKho CHECK (SLTonKho >= 0);
+ALTER TABLE ChiTietHoaDon ADD CONSTRAINT CK_ChiTietHoaDon_SoLuong CHECK (SoLuong > 0);
+ALTER TABLE HoiVien ADD CONSTRAINT CK_HoiVien_DiemTichLuy CHECK (DiemTichLuy >= 0);
+ALTER TABLE NguoiDung ADD CONSTRAINT CK_NguoiDung_Luong CHECK (Luong >= 0);
+
+-- Thêm khóa ngoại cho HoaDon-HoiVien
+ALTER TABLE HoaDon
+ADD CONSTRAINT FK_HoaDon_HoiVien
+FOREIGN KEY (MaHoiVien) REFERENCES HoiVien(MaHoiVien)
+ON DELETE SET NULL;
+
+-- Thêm indexes để tối ưu performance
+CREATE INDEX IX_HoaDon_NgayLapHD ON HoaDon(NgayLapHD);
+CREATE INDEX IX_HoaDon_TinhTrangTT ON HoaDon(TinhTrangTT);
+CREATE INDEX IX_Sach_TheLoai ON Sach(TheLoai);
+CREATE INDEX IX_Sach_TacGia ON Sach(TacGia);
+CREATE INDEX IX_HoiVien_SDT ON HoiVien(SDT);
+CREATE INDEX IX_LogHoatDong_ThoiGian ON LogHoatDong(ThoiGian);
+CREATE INDEX IX_NguoiDung_VaiTro ON NguoiDung(VaiTro);
+CREATE INDEX IX_NguoiDung_TrangThai ON NguoiDung(TrangThai);
+
+------------------------------------------------------
 -- VIEWS
 ------------------------------------------------------
 
@@ -251,6 +279,99 @@ SELECT
 FROM HoaDon
 WHERE TinhTrangTT = N'Đã thanh toán'
 GROUP BY YEAR(NgayLapHD), MONTH(NgayLapHD);
+
+-- View 5: Danh sách nhân viên hoạt động
+GO
+CREATE VIEW vw_DanhSachNhanVien AS
+SELECT 
+    MaNguoiDung,
+    HoTen,
+    NgaySinh,
+    GioiTinh,
+    SDT,
+    DiaChi,
+    TenDangNhap,
+    VaiTro,
+    Luong,
+    NgayTao,
+    TrangThai
+FROM NguoiDung
+WHERE TrangThai = N'Hoạt động';
+
+-- View 6: Báo cáo lương nhân viên
+GO
+CREATE VIEW vw_BaoCaoLuongNhanVien AS
+SELECT 
+    VaiTro,
+    COUNT(*) AS SoLuongNhanVien,
+    SUM(Luong) AS TongLuong,
+    AVG(Luong) AS LuongTrungBinh,
+    MAX(Luong) AS LuongCaoNhat,
+    MIN(Luong) AS LuongThapNhat
+FROM NguoiDung
+WHERE TrangThai = N'Hoạt động'
+GROUP BY VaiTro;
+
+------------------------------------------------------
+-- FUNCTIONS
+------------------------------------------------------
+
+-- Function 1: Kiểm tra tồn kho an toàn
+GO
+CREATE FUNCTION fn_KiemTraTonKhoAnToan(@MaSach INT, @SoLuongCanBan INT)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @TonKho INT;
+    DECLARE @KetQua BIT = 0;
+    
+    SELECT @TonKho = SLTonKho FROM Sach WHERE MaSach = @MaSach;
+    
+    IF @TonKho >= @SoLuongCanBan
+        SET @KetQua = 1;
+    
+    RETURN @KetQua;
+END;
+
+-- Function 2: Tính doanh thu theo khoảng thời gian
+GO
+CREATE FUNCTION fn_TinhDoanhThu(@TuNgay DATE, @DenNgay DATE)
+RETURNS DECIMAL(18,2)
+AS
+BEGIN
+    DECLARE @DoanhThu DECIMAL(18,2);
+    
+    SELECT @DoanhThu = ISNULL(SUM(TongTien), 0)
+    FROM HoaDon
+    WHERE NgayLapHD BETWEEN @TuNgay AND @DenNgay
+        AND TinhTrangTT = N'Đã thanh toán';
+    
+    RETURN @DoanhThu;
+END;
+
+-- Function 3: Tính tuổi nhân viên
+GO
+CREATE FUNCTION fn_TinhTuoiNhanVien(@MaNguoiDung INT)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @Tuoi INT;
+    SELECT @Tuoi = DATEDIFF(YEAR, NgaySinh, GETDATE())
+    FROM NguoiDung WHERE MaNguoiDung = @MaNguoiDung;
+    RETURN ISNULL(@Tuoi, 0);
+END;
+
+-- Function 4: Kiểm tra quyền Manager
+GO
+CREATE FUNCTION fn_KiemTraQuyenManager(@MaNguoiDung INT)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @Quyen BIT = 0;
+    IF EXISTS (SELECT 1 FROM NguoiDung WHERE MaNguoiDung = @MaNguoiDung AND VaiTro = 'Manager')
+        SET @Quyen = 1;
+    RETURN @Quyen;
+END;
 
 ------------------------------------------------------
 -- STORED PROCEDURES
@@ -502,8 +623,6 @@ BEGIN
         WHERE MaDN = @MaDN;
         
         -- Cập nhật tồn kho thông qua trigger
-        -- (Trigger trg_CapNhatTonKho_Nhap sẽ tự động cập nhật)
-        
         COMMIT TRANSACTION;
         
         SELECT 1 AS KetQua, N'Duyệt đơn nhập thành công' AS ThongBao;
@@ -662,11 +781,216 @@ BEGIN
         AND YEAR(NgayDangKy) = @NamHienTai;
 END;
 
+-- Procedure 11: Thêm nhân viên mới (chỉ Manager)
+GO
+CREATE PROCEDURE sp_ThemNhanVien
+    @HoTen NVARCHAR(100),
+    @NgaySinh DATE,
+    @GioiTinh NVARCHAR(10),
+    @SDT VARCHAR(15),
+    @DiaChi NVARCHAR(200),
+    @TenDangNhap VARCHAR(50),
+    @MatKhau VARCHAR(255),
+    @VaiTro NVARCHAR(50),
+    @Luong DECIMAL(18,2),
+    @MaNguoiTao INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Kiểm tra quyền Manager
+        IF dbo.fn_KiemTraQuyenManager(@MaNguoiTao) = 0
+        BEGIN
+            RAISERROR(N'Chỉ Manager mới có quyền thêm nhân viên', 16, 1);
+            RETURN;
+        END
+        
+        -- Kiểm tra trùng tên đăng nhập
+        IF EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = @TenDangNhap)
+        BEGIN
+            RAISERROR(N'Tên đăng nhập đã tồn tại', 16, 1);
+            RETURN;
+        END
+        
+        -- Kiểm tra vai trò hợp lệ
+        IF @VaiTro NOT IN ('Manager', 'Staff')
+        BEGIN
+            RAISERROR(N'Vai trò không hợp lệ', 16, 1);
+            RETURN;
+        END
+        
+        INSERT INTO NguoiDung (HoTen, NgaySinh, GioiTinh, SDT, DiaChi, TenDangNhap, MatKhau, VaiTro, Luong, NguoiTao)
+        VALUES (@HoTen, @NgaySinh, @GioiTinh, @SDT, @DiaChi, @TenDangNhap, @MatKhau, @VaiTro, @Luong, @MaNguoiTao);
+        
+        DECLARE @MaNguoiDungMoi INT = SCOPE_IDENTITY();
+        
+        -- Ghi log
+        INSERT INTO LogHoatDong (MaNguoiDung, HanhDong, ChiTiet)
+        VALUES (@MaNguoiTao, N'THÊM NHÂN VIÊN', N'Thêm nhân viên mới: ' + @HoTen);
+        
+        COMMIT TRANSACTION;
+        
+        SELECT @MaNguoiDungMoi AS MaNguoiDung, N'Thêm nhân viên thành công' AS ThongBao;
+        
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        SELECT 0 AS MaNguoiDung, ERROR_MESSAGE() AS ThongBao;
+    END CATCH
+END;
+
+-- Procedure 12: Cập nhật thông tin nhân viên (chỉ Manager)
+GO
+CREATE PROCEDURE sp_CapNhatNhanVien
+    @MaNguoiDung INT,
+    @HoTen NVARCHAR(100) = NULL,
+    @NgaySinh DATE = NULL,
+    @GioiTinh NVARCHAR(10) = NULL,
+    @SDT VARCHAR(15) = NULL,
+    @DiaChi NVARCHAR(200) = NULL,
+    @MatKhau VARCHAR(255) = NULL,
+    @VaiTro NVARCHAR(50) = NULL,
+    @Luong DECIMAL(18,2) = NULL,
+    @TrangThai NVARCHAR(20) = NULL,
+    @MaNguoiCapNhat INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Kiểm tra quyền Manager
+        IF dbo.fn_KiemTraQuyenManager(@MaNguoiCapNhat) = 0
+        BEGIN
+            RAISERROR(N'Chỉ Manager mới có quyền cập nhật nhân viên', 16, 1);
+            RETURN;
+        END
+        
+        -- Kiểm tra tồn tại
+        IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE MaNguoiDung = @MaNguoiDung)
+        BEGIN
+            RAISERROR(N'Nhân viên không tồn tại', 16, 1);
+            RETURN;
+        END
+        
+        -- Kiểm tra vai trò hợp lệ
+        IF @VaiTro IS NOT NULL AND @VaiTro NOT IN ('Manager', 'Staff')
+        BEGIN
+            RAISERROR(N'Vai trò không hợp lệ', 16, 1);
+            RETURN;
+        END
+        
+        UPDATE NguoiDung
+        SET 
+            HoTen = ISNULL(@HoTen, HoTen),
+            NgaySinh = ISNULL(@NgaySinh, NgaySinh),
+            GioiTinh = ISNULL(@GioiTinh, GioiTinh),
+            SDT = ISNULL(@SDT, SDT),
+            DiaChi = ISNULL(@DiaChi, DiaChi),
+            MatKhau = ISNULL(@MatKhau, MatKhau),
+            VaiTro = ISNULL(@VaiTro, VaiTro),
+            Luong = ISNULL(@Luong, Luong),
+            TrangThai = ISNULL(@TrangThai, TrangThai)
+        WHERE MaNguoiDung = @MaNguoiDung;
+        
+        -- Ghi log
+        INSERT INTO LogHoatDong (MaNguoiDung, HanhDong, ChiTiet)
+        VALUES (@MaNguoiCapNhat, N'CẬP NHẬT NHÂN VIÊN', N'Cập nhật nhân viên ID: ' + CAST(@MaNguoiDung AS NVARCHAR(10)));
+        
+        COMMIT TRANSACTION;
+        
+        SELECT 1 AS KetQua, N'Cập nhật nhân viên thành công' AS ThongBao;
+        
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        SELECT 0 AS KetQua, ERROR_MESSAGE() AS ThongBao;
+    END CATCH
+END;
+
+-- Procedure 13: Xóa (sa thải) nhân viên (chỉ Manager)
+GO
+CREATE PROCEDURE sp_XoaNhanVien
+    @MaNguoiDung INT,
+    @MaNguoiXoa INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Kiểm tra quyền Manager
+        IF dbo.fn_KiemTraQuyenManager(@MaNguoiXoa) = 0
+        BEGIN
+            RAISERROR(N'Chỉ Manager mới có quyền xóa nhân viên', 16, 1);
+            RETURN;
+        END
+        
+        -- Không cho xóa chính mình
+        IF @MaNguoiDung = @MaNguoiXoa
+        BEGIN
+            RAISERROR(N'Không thể xóa chính mình', 16, 1);
+            RETURN;
+        END
+        
+        -- Kiểm tra tồn tại
+        IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE MaNguoiDung = @MaNguoiDung)
+        BEGIN
+            RAISERROR(N'Nhân viên không tồn tại', 16, 1);
+            RETURN;
+        END
+        
+        -- Cập nhật trạng thái (soft delete)
+        UPDATE NguoiDung
+        SET TrangThai = N'Ngừng hoạt động'
+        WHERE MaNguoiDung = @MaNguoiDung;
+        
+        -- Ghi log
+        INSERT INTO LogHoatDong (MaNguoiDung, HanhDong, ChiTiet)
+        VALUES (@MaNguoiXoa, N'XÓA NHÂN VIÊN', N'Sa thải nhân viên ID: ' + CAST(@MaNguoiDung AS NVARCHAR(10)));
+        
+        COMMIT TRANSACTION;
+        
+        SELECT 1 AS KetQua, N'Xóa nhân viên thành công (chuyển trạng thái ngừng hoạt động)' AS ThongBao;
+        
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        SELECT 0 AS KetQua, ERROR_MESSAGE() AS ThongBao;
+    END CATCH
+END;
+
+-- Procedure 14: Tìm kiếm nhân viên
+GO
+CREATE PROCEDURE sp_TimKiemNhanVien
+    @TuKhoa NVARCHAR(100) = NULL,
+    @VaiTro NVARCHAR(50) = NULL,
+    @TrangThai NVARCHAR(20) = N'Hoạt động'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        MaNguoiDung,
+        HoTen,
+        VaiTro,
+        Luong,
+        TrangThai,
+        dbo.fn_TinhTuoiNhanVien(MaNguoiDung) AS Tuoi
+    FROM NguoiDung
+    WHERE TrangThai = @TrangThai
+        AND (@TuKhoa IS NULL OR HoTen LIKE N'%' + @TuKhoa + '%' OR TenDangNhap LIKE N'%' + @TuKhoa + '%')
+        AND (@VaiTro IS NULL OR VaiTro = @VaiTro)
+    ORDER BY HoTen;
+END;
+
 ------------------------------------------------------
 -- TRIGGERS
 ------------------------------------------------------
 
--- 1. TRIGGER: Kiểm tra tồn kho trước khi bán
+-- Trigger 1: Kiểm tra tồn kho trước khi bán
 GO
 CREATE TRIGGER trg_KiemTraTonKho
 ON ChiTietHoaDon
@@ -704,7 +1028,7 @@ BEGIN
     JOIN Sach s ON i.MaSach = s.MaSach;
 END;
 
--- 2. TRIGGER: Cập nhật tồn kho khi bán hàng
+-- Trigger 2: Cập nhật tồn kho khi bán hàng
 GO
 CREATE TRIGGER trg_CapNhatTonKho_Ban
 ON ChiTietHoaDon
@@ -726,7 +1050,7 @@ BEGIN
     WHERE s.SLTonKho <= 5;
 END;
 
--- 3. TRIGGER: Cập nhật tồn kho khi nhập hàng
+-- Trigger 3: Cập nhật tồn kho khi nhập hàng
 GO
 CREATE TRIGGER trg_CapNhatTonKho_Nhap
 ON ChiTietDonNhap
@@ -743,7 +1067,7 @@ BEGIN
     WHERE dn.TinhTrangNhap = N'Đã duyệt';
 END;
 
--- 4. TRIGGER: Tính tổng tiền hóa đơn
+-- Trigger 4: Tính tổng tiền hóa đơn
 GO
 CREATE TRIGGER trg_TinhTongTienHD
 ON ChiTietHoaDon
@@ -771,7 +1095,7 @@ BEGIN
     WHERE hd.MaHD IN (SELECT MaHD FROM deleted);
 END;
 
--- 5. TRIGGER: Kiểm tra phân quyền cập nhật giá
+-- Trigger 5: Kiểm tra phân quyền cập nhật giá
 GO
 CREATE TRIGGER trg_KiemTraQuyenSuaGia
 ON Sach
@@ -793,6 +1117,37 @@ BEGIN
         FROM inserted i
         JOIN deleted d ON i.MaSach = d.MaSach
         WHERE i.DonGia != d.DonGia;
+    END;
+END;
+
+-- Trigger 6: Ghi log khi thêm nhân viên
+GO
+CREATE TRIGGER trg_LogThemNhanVien
+ON NguoiDung
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO LogHoatDong (MaNguoiDung, HanhDong, ChiTiet)
+    SELECT i.MaNguoiDung, N'THÊM MỚI', N'Thêm nhân viên: ' + i.HoTen
+    FROM inserted i;
+END;
+
+-- Trigger 7: Kiểm tra và thông báo khi cập nhật lương
+GO
+CREATE TRIGGER trg_KiemTraCapNhatLuong
+ON NguoiDung
+AFTER UPDATE
+AS
+BEGIN
+    IF UPDATE(Luong)
+    BEGIN
+        INSERT INTO ThongBao (NoiDung, LoaiThongBao, MaNguoiDung)
+        SELECT N'Cập nhật lương cho nhân viên ' + i.HoTen + N': từ ' + FORMAT(d.Luong, 'N0') + N' thành ' + FORMAT(i.Luong, 'N0'),
+               N'Cảnh báo',
+               i.MaNguoiDung
+        FROM inserted i
+        JOIN deleted d ON i.MaNguoiDung = d.MaNguoiDung
+        WHERE i.Luong != d.Luong;
     END;
 END;
 
@@ -819,6 +1174,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON KhuyenMai TO db_manager;
 GRANT SELECT ON LogHoatDong TO db_manager;
 GRANT SELECT, UPDATE ON ThongBao TO db_manager;
 GRANT SELECT, INSERT, UPDATE ON CauHinh TO db_manager;
+GRANT SELECT ON vw_DanhSachNhanVien TO db_manager;
+GRANT SELECT ON vw_BaoCaoLuongNhanVien TO db_manager;
 
 -- Phân quyền cho Staff (hạn chế hơn)
 GRANT SELECT ON NguoiDung TO db_staff;
@@ -832,85 +1189,36 @@ GRANT SELECT, INSERT, UPDATE ON HoiVien TO db_staff;
 GRANT SELECT, INSERT ON DangKyHoiVien TO db_staff;
 GRANT SELECT ON KhuyenMai TO db_staff;
 GRANT SELECT ON ThongBao TO db_staff;
+GRANT SELECT ON vw_DanhSachNhanVien TO db_staff;
+GRANT SELECT ON vw_BaoCaoLuongNhanVien TO db_staff;
 
 -- Phân quyền thực thi procedure
 GRANT EXECUTE ON sp_DangNhap TO db_manager, db_staff;
 GRANT EXECUTE ON sp_TaoHoaDon TO db_manager, db_staff;
 GRANT EXECUTE ON sp_ThemSachVaoHoaDon TO db_manager, db_staff;
 GRANT EXECUTE ON sp_ThanhToanHoaDon TO db_manager, db_staff;
-GRANT EXECUTE ON sp_TaoDonNhap TO db_manager, db_staff;
-GRANT EXECUTE ON sp_DuyetDonNhap TO db_manager, db_staff;
+GRANT EXECUTE ON sp_TaoDonNhap TO db_manager;
+GRANT EXECUTE ON sp_DuyetDonNhap TO db_manager;
 GRANT EXECUTE ON sp_BaoCaoDoanhThu TO db_manager;
 GRANT EXECUTE ON sp_TimKiemSach TO db_manager, db_staff;
 GRANT EXECUTE ON sp_TaoHoiVien TO db_manager, db_staff;
 GRANT EXECUTE ON sp_ThongKeChung TO db_manager;
+GRANT EXECUTE ON sp_ThemNhanVien TO db_manager;
+GRANT EXECUTE ON sp_CapNhatNhanVien TO db_manager;
+GRANT EXECUTE ON sp_XoaNhanVien TO db_manager;
+GRANT EXECUTE ON sp_TimKiemNhanVien TO db_manager, db_staff;
 
 -- Phân quyền view
 GRANT SELECT ON vw_ThongTinBanHang TO db_manager, db_staff;
 GRANT SELECT ON vw_BaoCaoTonKho TO db_manager, db_staff;
 GRANT SELECT ON vw_TopSachBanChay TO db_manager;
 GRANT SELECT ON vw_DoanhThuTheoThang TO db_manager;
-------------------------------------------------------
--- FUNCTIONS
-------------------------------------------------------
 
--- Function 1: Kiểm tra tồn kho an toàn
-GO
-CREATE FUNCTION fn_KiemTraTonKhoAnToan(@MaSach INT, @SoLuongCanBan INT)
-RETURNS BIT
-AS
-BEGIN
-    DECLARE @TonKho INT;
-    DECLARE @KetQua BIT = 0;
-    
-    SELECT @TonKho = SLTonKho FROM Sach WHERE MaSach = @MaSach;
-    
-    IF @TonKho >= @SoLuongCanBan
-        SET @KetQua = 1;
-    
-    RETURN @KetQua;
-END;
-
--- Function 2: Tính doanh thu theo khoảng thời gian
-GO
-CREATE FUNCTION fn_TinhDoanhThu(@TuNgay DATE, @DenNgay DATE)
-RETURNS DECIMAL(18,2)
-AS
-BEGIN
-    DECLARE @DoanhThu DECIMAL(18,2);
-    
-    SELECT @DoanhThu = ISNULL(SUM(TongTien), 0)
-    FROM HoaDon
-    WHERE NgayLapHD BETWEEN @TuNgay AND @DenNgay
-        AND TinhTrangTT = N'Đã thanh toán';
-    
-    RETURN @DoanhThu;
-END;
-
-------------------------------------------------------
--- CONSTRAINTS & INDEXES
-------------------------------------------------------
-
--- Thêm ràng buộc
-ALTER TABLE HoaDon ADD CONSTRAINT CK_HoaDon_TongTien CHECK (TongTien >= 0);
-ALTER TABLE Sach ADD CONSTRAINT CK_Sach_DonGia CHECK (DonGia >= 0);
-ALTER TABLE Sach ADD CONSTRAINT CK_Sach_SLTonKho CHECK (SLTonKho >= 0);
-ALTER TABLE ChiTietHoaDon ADD CONSTRAINT CK_ChiTietHoaDon_SoLuong CHECK (SoLuong > 0);
-ALTER TABLE HoiVien ADD CONSTRAINT CK_HoiVien_DiemTichLuy CHECK (DiemTichLuy >= 0);
-
--- Thêm indexes để tối ưu performance
-CREATE INDEX IX_HoaDon_NgayLapHD ON HoaDon(NgayLapHD);
-CREATE INDEX IX_HoaDon_TinhTrangTT ON HoaDon(TinhTrangTT);
-CREATE INDEX IX_Sach_TheLoai ON Sach(TheLoai);
-CREATE INDEX IX_Sach_TacGia ON Sach(TacGia);
-CREATE INDEX IX_HoiVien_SDT ON HoiVien(SDT);
-CREATE INDEX IX_LogHoatDong_ThoiGian ON LogHoatDong(ThoiGian);
-
--- Thêm khóa ngoại cho HoaDon-HoiVien
-ALTER TABLE HoaDon
-ADD CONSTRAINT FK_HoaDon_HoiVien
-FOREIGN KEY (MaHoiVien) REFERENCES HoiVien(MaHoiVien)
-ON DELETE SET NULL;
+-- Phân quyền function
+GRANT EXECUTE ON fn_KiemTraTonKhoAnToan TO db_manager, db_staff;
+GRANT EXECUTE ON fn_TinhDoanhThu TO db_manager;
+GRANT EXECUTE ON fn_TinhTuoiNhanVien TO db_manager, db_staff;
+GRANT EXECUTE ON fn_KiemTraQuyenManager TO db_manager;
 
 ------------------------------------------------------
 -- DATA SAMPLES
@@ -953,32 +1261,62 @@ INSERT INTO KhuyenMai (TenKM, NgayBatDau, NgayKetThuc, LoaiKM, GiaTriKM, DieuKie
 (N'Giảm giá sách giáo khoa', '2024-08-01', '2024-09-30', N'Percent', 10, 100000, N'Giảm 10% cho sách giáo khoa khi mua từ 100k'),
 (N'Ưu đãi hội viên VIP', '2024-01-01', '2024-12-31', N'Percent', 15, 0, N'Giảm 15% cho tất cả hội viên VIP');
 
+-- Test thêm nhân viên mới (thực hiện bởi Manager ID=1)
+EXEC sp_ThemNhanVien 
+    @HoTen = N'Vũ Thị Hoa', 
+    @NgaySinh = '1995-06-10', 
+    @GioiTinh = N'Nữ', 
+    @SDT = '0945678901', 
+    @DiaChi = N'321 Trần Hưng Đạo, Q5, TP.HCM', 
+    @TenDangNhap = 'staff3', 
+    @MatKhau = 'staff123', 
+    @VaiTro = 'Staff', 
+    @Luong = 9000000, 
+    @MaNguoiTao = 1;
+
+-- Test cập nhật nhân viên (thực hiện bởi Manager ID=1)
+EXEC sp_CapNhatNhanVien 
+    @MaNguoiDung = 2, 
+    @Luong = 8500000, 
+    @MaNguoiCapNhat = 1;
+
+-- Test tìm kiếm nhân viên
+EXEC sp_TimKiemNhanVien @TuKhoa = N'Bình', @VaiTro = 'Staff';
+
+-- Test xóa nhân viên (thực hiện bởi Manager ID=1)
+EXEC sp_XoaNhanVien @MaNguoiDung = 3, @MaNguoiXoa = 1;
+
+------------------------------------------------------
+-- TEST HỆ THỐNG
+------------------------------------------------------
+
+-- Test đăng nhập
+EXEC sp_DangNhap 'manager', 'manager123';
+
+-- Test thống kê chung
+EXEC sp_ThongKeChung;
+
 GO
 
-PRINT N'✅ Tạo database hoàn chỉnh thành công!';
+PRINT N'✅ Tạo database CuaHangBanSach hoàn chỉnh thành công!';
 PRINT N'📊 Hệ thống bao gồm:';
-PRINT N'   - 13 Tables với đầy đủ ràng buộc';
-PRINT N'   - 6 Views báo cáo tổng hợp';  
-PRINT N'   - 10 Stored Procedures nghiệp vụ';
-PRINT N'   - 8 Triggers tự động hóa';
-PRINT N'   - 3 Functions hỗ trợ tính toán';
-PRINT N'   - Phân quyền Manager/Staff';
-PRINT N'   - Indexes tối ưu hiệu suất';
+PRINT N'   - 13 Tables với đầy đủ ràng buộc và indexes';
+PRINT N'   - 6 Views: Bán hàng, tồn kho, sách bán chạy, doanh thu, danh sách nhân viên, báo cáo lương';
+PRINT N'   - 7 Triggers: Tồn kho, hóa đơn, giá sách, quản lý nhân viên';
+PRINT N'   - 4 Functions: Tồn kho, doanh thu, tuổi nhân viên, quyền Manager';
+PRINT N'   - 14 Stored Procedures: Đăng nhập, bán hàng, nhập kho, hội viên, nhân viên (CRUD)';
+PRINT N'   - Phân quyền rõ ràng: Manager (toàn quyền), Staff (hạn chế)';
 PRINT N'   - Dữ liệu mẫu để test';
 PRINT N'';
 PRINT N'🔐 Tài khoản mặc định:';
 PRINT N'   Manager: manager/manager123';
 PRINT N'   Staff: staff1/staff123, staff2/staff123';
 PRINT N'';
-PRINT N'📈 Sẵn sàng sử dụng các chức năng:';
-PRINT N'   - Quản lý bán hàng (có/không hội viên)';
+PRINT N'📈 Chức năng chính:';
+PRINT N'   - Quản lý nhân viên (thêm, sửa, xóa, tìm kiếm)';
+PRINT N'   - Quản lý bán hàng (hóa đơn, hội viên)';
 PRINT N'   - Quản lý nhập kho (phân quyền)';
-PRINT N'   - Báo cáo doanh thu chi tiết';  
-PRINT N'   - Quản lý tồn kho thông minh';
+PRINT N'   - Báo cáo doanh thu và tồn kho';
 PRINT N'   - Hệ thống tích điểm hội viên';
-PRINT N'   - Audit log đầy đủ';
-PRINT N'   - Bảo mật dữ liệu';
-
--- Test nhanh hệ thống
-EXEC sp_DangNhap 'manager', 'manager123';
-EXEC sp_ThongKeChung;
+PRINT N'   - Audit log và thông báo';
+PRINT N'   - Bảo mật dữ liệu và phân quyền';
