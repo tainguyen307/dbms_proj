@@ -386,7 +386,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    DECLARE @MaNguoiDung INT, @HoTen NVARCHAR(100) @VaiTro NVARCHAR(50), @TrangThai NVARCHAR(20);
+    DECLARE @MaNguoiDung INT, @HoTen NVARCHAR(100), @VaiTro NVARCHAR(50), @TrangThai NVARCHAR(20);
     
     SELECT @MaNguoiDung = MaNguoiDung, @HoTen = HoTen, @VaiTro = VaiTro, @TrangThai = TrangThai
     FROM NguoiDung 
