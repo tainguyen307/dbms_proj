@@ -1,0 +1,12 @@
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\bin\Debug\QuanLyNhapSach.exe.config
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\bin\Debug\QuanLyNhapSach.exe
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\bin\Debug\QuanLyNhapSach.pdb
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.csproj.AssemblyReference.cache
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.FormMain.resources
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.FormLogin.resources
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.Properties.Resources.resources
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.csproj.GenerateResource.cache
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.csproj.CoreCompileInputs.cache
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.exe
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.pdb
+D:\Chuong_trinh_hoc\HQT_CSDL\dbms_proj\CuaHangBanSach\QuanLyNhapSach\obj\Debug\QuanLyNhapSach.exe.config
