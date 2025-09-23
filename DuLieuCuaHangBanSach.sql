@@ -55,8 +55,7 @@ CREATE TABLE NhaCungCap (
     DienThoai VARCHAR(15),
     DiaChi NVARCHAR(200),
     Website NVARCHAR(200),
-    Email NVARCHAR(100),
-    TrangThai NVARCHAR(20) DEFAULT N'Hoạt động'
+    Email NVARCHAR(100)
 );
 
 -- 5. Bảng Sach
@@ -183,6 +182,7 @@ ALTER TABLE Sach ADD CONSTRAINT CK_Sach_SLTonKho CHECK (SLTonKho >= 0);
 ALTER TABLE ChiTietHoaDon ADD CONSTRAINT CK_ChiTietHoaDon_SoLuong CHECK (SoLuong > 0);
 ALTER TABLE HoiVien ADD CONSTRAINT CK_HoiVien_DiemTichLuy CHECK (DiemTichLuy >= 0);
 ALTER TABLE NguoiDung ADD CONSTRAINT CK_NguoiDung_Luong CHECK (Luong >= 0);
+ALTER TABLE DonNhap ADD CONSTRAINT CK_DonNhap_TinhTrangNhap CHECK (TinhTrangNhap IN (N'Đã nhập', N'Chưa nhập'))
 
 -- Thêm khóa ngoại cho HoaDon-HoiVien
 ALTER TABLE HoaDon
