@@ -968,7 +968,7 @@ GO
 CREATE PROCEDURE sp_TimKiemNhanVien
     @TuKhoa NVARCHAR(100) = NULL,
     @VaiTro NVARCHAR(50) = NULL,
-    @TrangThai NVARCHAR(20) = N'Hoạt động'
+    @TrangThai NVARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -976,15 +976,24 @@ BEGIN
     SELECT 
         MaNguoiDung,
         HoTen,
+        NgaySinh,
+        GioiTinh,
+        SDT,
+        DiaChi,
+        TenDangNhap,
+        MatKhau,
         VaiTro,
         Luong,
+        NgayTao,
+        NguoiTao,
         TrangThai,
         dbo.fn_TinhTuoiNhanVien(MaNguoiDung) AS Tuoi
     FROM NguoiDung
-    WHERE TrangThai = @TrangThai
-        AND (@TuKhoa IS NULL OR HoTen LIKE N'%' + @TuKhoa + '%' OR TenDangNhap LIKE N'%' + @TuKhoa + '%')
+    WHERE 
+        (@TuKhoa IS NULL OR HoTen LIKE N'%' + @TuKhoa + '%' OR TenDangNhap LIKE N'%' + @TuKhoa + '%')
         AND (@VaiTro IS NULL OR VaiTro = @VaiTro)
-    ORDER BY HoTen;
+        AND (@TrangThai IS NULL OR TrangThai = @TrangThai)
+    ORDER BY MaNguoiDung;
 END;
 
 ------------------------------------------------------
