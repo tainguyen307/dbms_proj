@@ -296,7 +296,6 @@ SELECT
     NgayTao,
     TrangThai
 FROM NguoiDung
-WHERE TrangThai = N'Hoạt động';
 
 -- View 6: Báo cáo lương nhân viên
 GO
