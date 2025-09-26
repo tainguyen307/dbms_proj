@@ -297,8 +297,12 @@ GRANT SELECT ON KhuyenMai TO db_staff;
 GRANT INSERT ON LogHoatDong TO db_staff;
 GRANT SELECT, INSERT, UPDATE ON ThongBao TO db_staff;
 
--- Cấp quyền ALTER ANY LOGIN cho manager
+-- Cấp quyền cho manager
+USE master;
 GRANT ALTER ANY LOGIN TO manager;
+USE CuaHangBanSach;
+GRANT ALTER ANY USER TO manager;
+GRANT ALTER ANY ROLE TO manager;
 
 -- Đồng bộ trạng thái staff2 trong NguoiDung
 UPDATE NguoiDung
