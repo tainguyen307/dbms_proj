@@ -242,6 +242,35 @@ INSERT INTO KhuyenMai (TenKM, NgayBatDau, NgayKetThuc, LoaiKM, GiaTriKM, DieuKie
 (N'Giảm giá sách giáo khoa', '2024-08-01', '2024-09-30', N'Percent', 10, 100000, N'Giảm 10% cho sách giáo khoa khi mua từ 100k'),
 (N'Ưu đãi hội viên VIP', '2024-01-01', '2024-12-31', N'Percent', 15, 0, N'Giảm 15% cho tất cả hội viên VIP');
 
+-- Thêm hóa đơn
+INSERT INTO HoaDon (NgayLapHD, TinhTrangTT, TongTien, PhuongThucTT, MaNguoiDung, MaHoiVien, GhiChu) VALUES
+('2024-08-01', N'Đã thanh toán', 445000.00, N'Tiền mặt', 2, 1, N'Khách hàng hội viên VIP'),
+('2024-08-02', N'Đã thanh toán', 120000.00, N'Chuyển khoản', 3, NULL, N'Khách mua sách kỹ năng'),
+('2024-08-03', N'Chưa thanh toán', 360000.00, N'Tiền mặt', 2, 2, N'Khách hàng hội viên Gold - chờ thanh toán'),
+('2024-08-04', N'Đã thanh toán', 45000.00, N'Tiền mặt', 3, 3, N'Mua sách giáo khoa'),
+('2024-08-05', N'Đã thanh toán', 545000.00, N'Thẻ tín dụng', 2, 1, N'Khách VIP mua nhiều sách');
+
+-- Thêm dữ liệu vào bảng ChiTietHoaDon
+INSERT INTO ChiTietHoaDon (MaHD, MaSach, SoLuong, DonGia, ThanhTien) VALUES
+-- Hóa đơn 1: Khách VIP mua 3 loại sách
+(1, 1, 3, 25000, 75000),   -- 3 cuốn Doraemon
+(1, 3, 1, 120000, 120000), -- 1 cuốn Đắc Nhân Tâm
+(1, 4, 1, 250000, 250000), -- 1 cuốn Sapiens
+-- Hóa đơn 2: Khách thường mua sách kỹ năng
+(2, 3, 1, 120000, 120000), -- 1 cuốn Đắc Nhân Tâm
+-- Hóa đơn 3: Khách Gold mua truyện tranh (chưa thanh toán)
+(3, 1, 2, 25000, 50000),   -- 2 cuốn Doraemon
+(3, 2, 2, 30000, 60000),   -- 2 cuốn Conan
+(3, 4, 1, 250000, 250000), -- 1 cuốn Sapiens
+-- Hóa đơn 4: Khách thường mua sách giáo khoa
+(4, 5, 1, 45000, 45000),   -- 1 cuốn Toán 12
+-- Hóa đơn 5: Khách VIP mua nhiều sách
+(5, 1, 5, 25000, 125000),  -- 5 cuốn Doraemon
+(5, 2, 3, 30000, 90000),   -- 3 cuốn Conan
+(5, 3, 2, 120000, 240000), -- 2 cuốn Đắc Nhân Tâm
+(5, 5, 2, 45000, 90000);   -- 2 cuốn Toán 12
+
+
 -- Tạo login trong master
 CREATE LOGIN manager WITH PASSWORD = 'manager123';
 CREATE LOGIN staff1 WITH PASSWORD = 'staff123';
