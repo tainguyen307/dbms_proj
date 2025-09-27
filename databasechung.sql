@@ -182,6 +182,10 @@ ALTER TABLE Sach ADD CONSTRAINT CK_Sach_SLTonKho CHECK (SLTonKho >= 0);
 ALTER TABLE ChiTietHoaDon ADD CONSTRAINT CK_ChiTietHoaDon_SoLuong CHECK (SoLuong > 0);
 ALTER TABLE HoiVien ADD CONSTRAINT CK_HoiVien_DiemTichLuy CHECK (DiemTichLuy >= 0);
 ALTER TABLE NguoiDung ADD CONSTRAINT CK_NguoiDung_Luong CHECK (Luong >= 0);
+ALTER TABLE DonNhap ADD CONSTRAINT CK_DonNhap_TongTien CHECK (TongTien >= 0);
+ALTER TABLE ChiTietDonNhap ADD CONSTRAINT CK_ChiTietDonNhap_SoLuong CHECK (SoLuong > 0);
+ALTER TABLE ChiTietDonNhap ADD CONSTRAINT CK_ChiTietDonNhap_GiaNhap CHECK (GiaNhap >= 0);
+ALTER TABLE ChiTietDonNhap ADD CONSTRAINT CK_ChiTietDonNhap_ThanhTien CHECK (ThanhTien >= 0);
 
 -- Thêm khóa ngoại cho HoaDon-HoiVien
 ALTER TABLE HoaDon
