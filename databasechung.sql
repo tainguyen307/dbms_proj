@@ -186,6 +186,7 @@ ALTER TABLE DonNhap ADD CONSTRAINT CK_DonNhap_TongTien CHECK (TongTien >= 0);
 ALTER TABLE ChiTietDonNhap ADD CONSTRAINT CK_ChiTietDonNhap_SoLuong CHECK (SoLuong > 0);
 ALTER TABLE ChiTietDonNhap ADD CONSTRAINT CK_ChiTietDonNhap_GiaNhap CHECK (GiaNhap >= 0);
 ALTER TABLE ChiTietDonNhap ADD CONSTRAINT CK_ChiTietDonNhap_ThanhTien CHECK (ThanhTien >= 0);
+ALTER TABLE DonNhap ADD CONSTRAINT CK_DonNhap_TinhTrangNhap CHECK (TinhTrangNhap IN (N'Đã nhập', N'Chưa nhập', N'Hủy đơn'))
 
 -- Thêm khóa ngoại cho HoaDon-HoiVien
 ALTER TABLE HoaDon
@@ -202,6 +203,9 @@ CREATE INDEX IX_HoiVien_SDT ON HoiVien(SDT);
 CREATE INDEX IX_LogHoatDong_ThoiGian ON LogHoatDong(ThoiGian);
 CREATE INDEX IX_NguoiDung_VaiTro ON NguoiDung(VaiTro);
 CREATE INDEX IX_NguoiDung_TrangThai ON NguoiDung(TrangThai);
+CREATE INDEX IX_ChiTietDonNhap_MaDN ON ChiTietDonNhap(MaDN);
+CREATE INDEX IX_ChiTietDonNhap_MaSach ON ChiTietDonNhap(MaSach);
+CREATE INDEX IX_ChiTietDonNhap_MaNCC ON ChiTietDonNhap(MaNCC);
 
 ------------------------------------------------------
 -- DATA SAMPLES
