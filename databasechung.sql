@@ -42,7 +42,7 @@ CREATE TABLE DonNhap (
     MaDN INT IDENTITY(1,1) PRIMARY KEY,
     NgayLapDN DATE DEFAULT CAST(GETDATE() AS DATE),
     TongTien DECIMAL(18,2) DEFAULT 0,
-    TinhTrangNhap NVARCHAR(50) DEFAULT N'Chờ duyệt',
+    TinhTrangNhap NVARCHAR(50) DEFAULT N'Chưa nhập',
     MaNguoiDung INT NOT NULL,
     GhiChu NVARCHAR(500),
     FOREIGN KEY (MaNguoiDung) REFERENCES NguoiDung(MaNguoiDung)
@@ -283,7 +283,7 @@ INSERT INTO ChiTietHoaDon (MaHD, MaSach, SoLuong, DonGia, ThanhTien) VALUES
 INSERT INTO DonNhap (NgayLapDN, TongTien, TinhTrangNhap, MaNguoiDung, GhiChu) VALUES
 ('2024-08-10', 500000, N'Đã nhập', 2, N'Nhập sách từ NXB Kim Đồng'),
 ('2024-08-12', 900000, N'Đã nhập', 3, N'Nhập sách từ NXB Trẻ'),
-('2024-08-15', 450000, N'Chưa nhập', 4, N'Đơn chờ duyệt từ NXB Giáo Dục');
+('2024-08-15', 450000, N'Chưa nhập', 4, N'Đơn chờ duyệt');
 
 -- Thêm dữ liệu cho bảng ChiTietDonNhap
 -- Đơn nhập 1: từ NXB Kim Đồng (MaNCC = 1)
