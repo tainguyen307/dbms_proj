@@ -279,6 +279,28 @@ INSERT INTO ChiTietHoaDon (MaHD, MaSach, SoLuong, DonGia, ThanhTien) VALUES
 (5, 5, 2, 45000, 90000);   -- 2 cuốn Toán 12
 
 
+-- Thêm dữ liệu cho bảng DonNhap
+INSERT INTO DonNhap (NgayLapDN, TongTien, TinhTrangNhap, MaNguoiDung, GhiChu) VALUES
+('2024-08-10', 500000, N'Đã nhập', 2, N'Nhập sách từ NXB Kim Đồng'),
+('2024-08-12', 900000, N'Đã nhập', 3, N'Nhập sách từ NXB Trẻ'),
+('2024-08-15', 450000, N'Chưa nhập', 4, N'Đơn chờ duyệt từ NXB Giáo Dục');
+
+-- Thêm dữ liệu cho bảng ChiTietDonNhap
+-- Đơn nhập 1: từ NXB Kim Đồng (MaNCC = 1)
+INSERT INTO ChiTietDonNhap (MaDN, MaSach, MaNCC, SoLuong, GiaNhap, ThanhTien) VALUES
+(1, 1, 1, 50, 20000, 1000000), -- Doraemon
+(1, 2, 1, 30, 25000, 750000);  -- Conan
+
+-- Đơn nhập 2: từ NXB Trẻ (MaNCC = 2)
+INSERT INTO ChiTietDonNhap (MaDN, MaSach, MaNCC, SoLuong, GiaNhap, ThanhTien) VALUES
+(2, 3, 2, 20, 90000, 1800000), -- Đắc Nhân Tâm
+(2, 4, 2, 10, 200000, 2000000); -- Sapiens
+
+-- Đơn nhập 3: từ NXB Giáo Dục (MaNCC = 3)
+INSERT INTO ChiTietDonNhap (MaDN, MaSach, MaNCC, SoLuong, GiaNhap, ThanhTien) VALUES
+(3, 5, 3, 100, 30000, 3000000); -- Toán Lớp 12
+
+
 -- Tạo login trong master
 CREATE LOGIN manager WITH PASSWORD = 'manager123';
 CREATE LOGIN staff1 WITH PASSWORD = 'staff123';
