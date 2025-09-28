@@ -343,8 +343,6 @@ GRANT SELECT, INSERT ON LogHoatDong TO db_manager;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ThongBao TO db_manager;
 GRANT SELECT, INSERT, UPDATE, DELETE ON CauHinh TO db_manager;
 GRANT SELECT, INSERT, UPDATE, DELETE ON KhuyenMai TO db_manager;
-GRANT EXECUTE ON sp_CapNhatNhanVien TO db_manager;
-GRANT EXECUTE ON sp_XoaNhanVien TO db_manager;
 
 -- Cấp quyền cho db_staff
 GRANT SELECT, INSERT, UPDATE ON HoaDon TO db_staff;
