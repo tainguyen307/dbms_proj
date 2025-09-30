@@ -134,7 +134,6 @@ CREATE TABLE LogHoatDong (
     HanhDong NVARCHAR(100),
     ChiTiet NVARCHAR(500),
     ThoiGian DATETIME DEFAULT GETDATE(),
-    IPAddress VARCHAR(45),
     FOREIGN KEY (MaNguoiDung) REFERENCES NguoiDung(MaNguoiDung)
 );
 
